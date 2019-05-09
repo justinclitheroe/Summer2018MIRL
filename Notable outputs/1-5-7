@@ -1,0 +1,223 @@
+Hyperparameters:
+single_batch = True
+    # Seeding stuff
+    seed = 1
+    torch.manual_seed(seed)
+    # Save handling
+    savedirectory = "models/"
+    savepath_reg = os.path.join(savedirectory, "trained-regression-ACC{}-T{}")
+    savepath_cnn = os.path.join(savedirectory, "trained-CNN-ACC{}-T{}")
+    savepath_fusion = os.path.join(savedirectory, "trained-fusion-ACC{}-T{}")
+    loadpath_reg = os.path.join(savedirectory, "trained-regression-ACC66-T1731")
+    loadpath_cnn = os.path.join(savedirectory, "trained-CNN-ACC66.89-T1730")
+    loadpath_fusion = os.path.join(savedirectory, "trained-fusion")
+    # hyperparameters for loading and saving
+    resume = False
+    save = True
+
+    # batch size handling
+    batch_size = 100
+    if single_batch:
+        test_batch_size = 10000
+    else:
+        test_batch_size = 100
+    # hyperparameters
+    epochs = 5
+    lr = 0.001
+    log_interval = 100
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+    # train/test data set handling
+    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+    train_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('../data', train=True, download=True,
+                       transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.1307,), (0.3081,))
+                       ])),
+        batch_size=batch_size, shuffle=True, **kwargs)
+    test_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('../data', train=False, transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])),
+        batch_size=test_batch_size, shuffle=True, **kwargs)
+
+    # model instantiation (loading if flag is set)
+    # model_cnn = CNN().to(device)
+    model_cnn = CNN().to(device)
+    # model_fusion = nn.Linear(2, 2).to(device)
+    classes = [1, 5, 7]
+    model_fusion = nn.Sequential(
+        nn.Linear(2, 4),
+        nn.Linear(4, 8),
+        nn.Linear(8, 16),
+        nn.Linear(16, len(classes) + 1)
+    ).to(device)
+    model_fusion_NB = naive_bayes.GaussianNB()
+    model_fusion_svm = svm.SVC()
+    model_reg = nn.Sequential(
+        nn.Linear(784,392),
+        nn.Linear(392,196),
+        nn.Linear(196,len(classes) + 1)
+    ).to(device)
+    # model_reg = nn.Linear(784, len(classes) + 1).to(device)
+    # Loading
+    if resume:
+        model_cnn.load_state_dict(torch.load(loadpath_cnn))
+        model_cnn.eval()
+        model_cnn.to(device)
+        model_reg.load_state_dict(torch.load(loadpath_reg))
+        model_reg.eval()
+        model_reg.to(device)
+
+    # Optimizers
+    optimizer_cnn = optim.Adam(model_cnn.parameters(), lr=lr)
+    optimizer_reg = optim.SGD(model_reg.parameters(), lr=lr, momentum=0.9)
+    optimizer_fusion = optim.Adam(model_fusion.parameters(), lr=lr)
+
+
+Output:
+Train Epoch (CNN): 1 [0/60000 (0%)]	Loss: -0.098742
+Train Epoch (CNN): 1 [10000/60000 (17%)]	Loss: -0.275158
+Train Epoch (CNN): 1 [20000/60000 (33%)]	Loss: -0.248354
+Train Epoch (CNN): 1 [30000/60000 (50%)]	Loss: -0.306383
+Train Epoch (CNN): 1 [40000/60000 (67%)]	Loss: -0.263734
+Train Epoch (CNN): 1 [50000/60000 (83%)]	Loss: -0.352743
+/home/jcl/research/train_and_test.py:132: UserWarning: Implicit dimension choice for softmax has been deprecated. Change the call to include dim=X as an argument.
+  loss = F.nll_loss(F.softmax(output), target)
+Train Epoch (REG): 1 [0/60000 (0%)]	Loss: -0.245591
+Train Epoch (REG): 1 [10000/60000 (17%)]	Loss: -0.685958
+Train Epoch (REG): 1 [20000/60000 (33%)]	Loss: -0.740006
+Train Epoch (REG): 1 [30000/60000 (50%)]	Loss: -0.726298
+Train Epoch (REG): 1 [40000/60000 (67%)]	Loss: -0.751571
+Train Epoch (REG): 1 [50000/60000 (83%)]	Loss: -0.769322
+
+Test set (CNN): Accuracy: 4650/10000 (46%)
+
+Test set (LR): Accuracy: 7941/10000 (79%)
+Train Epoch (CNN): 2 [0/60000 (0%)]	Loss: -0.261294
+Train Epoch (CNN): 2 [10000/60000 (17%)]	Loss: -0.341035
+Train Epoch (CNN): 2 [20000/60000 (33%)]	Loss: -0.350197
+Train Epoch (CNN): 2 [30000/60000 (50%)]	Loss: -0.333696
+Train Epoch (CNN): 2 [40000/60000 (67%)]	Loss: -0.311230
+Train Epoch (CNN): 2 [50000/60000 (83%)]	Loss: -0.314956
+Train Epoch (REG): 2 [0/60000 (0%)]	Loss: -0.786232
+Train Epoch (REG): 2 [10000/60000 (17%)]	Loss: -0.780856
+Train Epoch (REG): 2 [20000/60000 (33%)]	Loss: -0.783868
+Train Epoch (REG): 2 [30000/60000 (50%)]	Loss: -0.805716
+Train Epoch (REG): 2 [40000/60000 (67%)]	Loss: -0.792735
+Train Epoch (REG): 2 [50000/60000 (83%)]	Loss: -0.758360
+
+Test set (CNN): Accuracy: 5576/10000 (56%)
+
+Test set (LR): Accuracy: 7979/10000 (79%)
+Train Epoch (CNN): 3 [0/60000 (0%)]	Loss: -0.296707
+Train Epoch (CNN): 3 [10000/60000 (17%)]	Loss: -0.389035
+Train Epoch (CNN): 3 [20000/60000 (33%)]	Loss: -0.376998
+Train Epoch (CNN): 3 [30000/60000 (50%)]	Loss: -0.372386
+Train Epoch (CNN): 3 [40000/60000 (67%)]	Loss: -0.300127
+Train Epoch (CNN): 3 [50000/60000 (83%)]	Loss: -0.321785
+Train Epoch (REG): 3 [0/60000 (0%)]	Loss: -0.714247
+Train Epoch (REG): 3 [10000/60000 (17%)]	Loss: -0.794526
+Train Epoch (REG): 3 [20000/60000 (33%)]	Loss: -0.765081
+Train Epoch (REG): 3 [30000/60000 (50%)]	Loss: -0.797099
+Train Epoch (REG): 3 [40000/60000 (67%)]	Loss: -0.792627
+Train Epoch (REG): 3 [50000/60000 (83%)]	Loss: -0.744987
+
+Test set (CNN): Accuracy: 5598/10000 (56%)
+
+Test set (LR): Accuracy: 7992/10000 (79%)
+Train Epoch (CNN): 4 [0/60000 (0%)]	Loss: -0.339258
+Train Epoch (CNN): 4 [10000/60000 (17%)]	Loss: -0.376856
+Train Epoch (CNN): 4 [20000/60000 (33%)]	Loss: -0.364735
+Train Epoch (CNN): 4 [30000/60000 (50%)]	Loss: -0.366331
+Train Epoch (CNN): 4 [40000/60000 (67%)]	Loss: -0.319623
+Train Epoch (CNN): 4 [50000/60000 (83%)]	Loss: -0.299294
+Train Epoch (REG): 4 [0/60000 (0%)]	Loss: -0.801217
+Train Epoch (REG): 4 [10000/60000 (17%)]	Loss: -0.793804
+Train Epoch (REG): 4 [20000/60000 (33%)]	Loss: -0.785136
+Train Epoch (REG): 4 [30000/60000 (50%)]	Loss: -0.808312
+Train Epoch (REG): 4 [40000/60000 (67%)]	Loss: -0.762814
+Train Epoch (REG): 4 [50000/60000 (83%)]	Loss: -0.827738
+
+Test set (CNN): Accuracy: 5625/10000 (56%)
+
+Test set (LR): Accuracy: 7997/10000 (79%)
+Train Epoch (CNN): 5 [0/60000 (0%)]	Loss: -0.364137
+Train Epoch (CNN): 5 [10000/60000 (17%)]	Loss: -0.380782
+Train Epoch (CNN): 5 [20000/60000 (33%)]	Loss: -0.358800
+Train Epoch (CNN): 5 [30000/60000 (50%)]	Loss: -0.347210
+Train Epoch (CNN): 5 [40000/60000 (67%)]	Loss: -0.412004
+Train Epoch (CNN): 5 [50000/60000 (83%)]	Loss: -0.292922
+Train Epoch (REG): 5 [0/60000 (0%)]	Loss: -0.765340
+Train Epoch (REG): 5 [10000/60000 (17%)]	Loss: -0.779099
+Train Epoch (REG): 5 [20000/60000 (33%)]	Loss: -0.819497
+Train Epoch (REG): 5 [30000/60000 (50%)]	Loss: -0.759829
+Train Epoch (REG): 5 [40000/60000 (67%)]	Loss: -0.819342
+Train Epoch (REG): 5 [50000/60000 (83%)]	Loss: -0.732118
+
+Test set (CNN): Accuracy: 5648/10000 (56%)
+
+Test set (LR): Accuracy: 8004/10000 (80%)
+/home/jcl/research/train_and_test.py:114: UserWarning: Implicit dimension choice for softmax has been deprecated. Change the call to include dim=X as an argument.
+  loss = F.nll_loss(F.softmax(fusion_output), target)
+Train Epoch (FNN): 1 [0/60000 (0%)]	Loss: -0.219959
+Train Epoch (FNN): 1 [10000/60000 (17%)]	Loss: -0.596687
+Train Epoch (FNN): 1 [20000/60000 (33%)]	Loss: -0.758304
+Train Epoch (FNN): 1 [30000/60000 (50%)]	Loss: -0.660583
+Train Epoch (FNN): 1 [40000/60000 (67%)]	Loss: -0.755367
+Train Epoch (FNN): 1 [50000/60000 (83%)]	Loss: -0.789668
+
+Test set (fusioNN): Accuracy: 7737/10000 (77%)
+Train Epoch (FNN): 2 [0/60000 (0%)]	Loss: -0.772292
+Train Epoch (FNN): 2 [10000/60000 (17%)]	Loss: -0.850697
+Train Epoch (FNN): 2 [20000/60000 (33%)]	Loss: -0.848273
+Train Epoch (FNN): 2 [30000/60000 (50%)]	Loss: -0.928929
+Train Epoch (FNN): 2 [40000/60000 (67%)]	Loss: -0.899369
+Train Epoch (FNN): 2 [50000/60000 (83%)]	Loss: -0.869598
+
+Test set (fusioNN): Accuracy: 8796/10000 (88%)
+Train Epoch (FNN): 3 [0/60000 (0%)]	Loss: -0.889747
+Train Epoch (FNN): 3 [10000/60000 (17%)]	Loss: -0.839793
+Train Epoch (FNN): 3 [20000/60000 (33%)]	Loss: -0.849863
+Train Epoch (FNN): 3 [30000/60000 (50%)]	Loss: -0.879869
+Train Epoch (FNN): 3 [40000/60000 (67%)]	Loss: -0.959872
+Train Epoch (FNN): 3 [50000/60000 (83%)]	Loss: -0.869902
+
+Test set (fusioNN): Accuracy: 8796/10000 (88%)
+Train Epoch (FNN): 4 [0/60000 (0%)]	Loss: -0.889915
+Train Epoch (FNN): 4 [10000/60000 (17%)]	Loss: -0.919935
+Train Epoch (FNN): 4 [20000/60000 (33%)]	Loss: -0.869953
+Train Epoch (FNN): 4 [30000/60000 (50%)]	Loss: -0.889939
+Train Epoch (FNN): 4 [40000/60000 (67%)]	Loss: -0.859957
+Train Epoch (FNN): 4 [50000/60000 (83%)]	Loss: -0.899952
+
+Test set (fusioNN): Accuracy: 8796/10000 (88%)
+Train Epoch (FNN): 5 [0/60000 (0%)]	Loss: -0.839966
+Train Epoch (FNN): 5 [10000/60000 (17%)]	Loss: -0.859968
+Train Epoch (FNN): 5 [20000/60000 (33%)]	Loss: -0.859969
+Train Epoch (FNN): 5 [30000/60000 (50%)]	Loss: -0.849971
+Train Epoch (FNN): 5 [40000/60000 (67%)]	Loss: -0.889980
+Train Epoch (FNN): 5 [50000/60000 (83%)]	Loss: -0.939975
+
+Test set (fusioNN): Accuracy: 8796/10000 (88%)
+(SVM) Correct: 8797
+(Naive bayes) Correct: 2927
+CNN: {'0': 9031, '2': 968, '1': 1}
+REG: {'0': 8861, '1': 1139}
+I(CNN, target): 0.260
+I(REG, target): 0.297
+I(Joint, target): 0.297
+I(CNN, REG): 0.007
+H(REG): 0.355
+H(CNN): 0.319
+H(Target): 0.950
+H(joint): 0.356
+accuracy CNN: 0.774
+accuracy REG: 0.800
+Precision CNN: 0.000
+Precision REG: 0.000
+f1 CNN: 0.000
+f1 REG: 0.000
+122.41055800000001
